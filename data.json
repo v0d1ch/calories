@@ -53,6 +53,15 @@
         "p": 0.1,
         "c": 11.4,
         "f": 0.0
+      },
+      {
+        "meal": "Užina",
+        "name": "Whey protein + kreatin",
+        "note": "1 merica ~30 g, sa vodom; kreatin 5 g (0 kcal)",
+        "kcal": 120,
+        "p": 24.0,
+        "c": 2.5,
+        "f": 1.8
       }
     ]
   }
