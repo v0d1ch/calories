@@ -106,6 +106,17 @@
       <div id="log"></div>
     </div>
 
+    <div class="card" id="wCard" style="display:none">
+      <h2>Težina</h2>
+      <div class="hero">
+        <div>
+          <div class="fig" id="wNow">—</div>
+          <div class="sub" id="wSub"></div>
+        </div>
+      </div>
+      <div id="wChart" style="margin-top:14px"></div>
+    </div>
+
     <div class="card">
       <h2>Poslednjih 7 dana</h2>
       <div id="chart"></div>
@@ -168,7 +179,53 @@ function render(){
     L.appendChild(div);
   });
   drawWeek(T.kcal);
+  drawWeight();
   if(S.updated) $("updated").textContent="Poslednje ažuriranje: "+S.updated;
+}
+function wKeys(){ return Object.keys(S.weights||{}).filter(k=>S.weights[k]>0).sort(); }
+function wAvg(end,n){
+  const start=keyShift(end,-(n-1));
+  const vs=wKeys().filter(k=>k>=start&&k<=end).map(k=>S.weights[k]);
+  return vs.length?{avg:vs.reduce((a,b)=>a+b,0)/vs.length,n:vs.length}:null;
+}
+function drawWeight(){
+  const ks=wKeys().filter(k=>k<=cur);
+  if(!ks.length){ $("wCard").style.display="none"; return; }
+  $("wCard").style.display="block";
+  const last=ks[ks.length-1], w=S.weights[last];
+  $("wNow").textContent=w.toFixed(1)+" kg";
+  const a=wAvg(cur,7), prev=wAvg(keyShift(cur,-7),7);
+  let sub=last===cur?"jutros":("mereno "+fmtDate(last).replace("Danas · ","").replace("Juče · ",""));
+  if(a) sub+=` · 7-dnevni prosek <b>${a.avg.toFixed(1)} kg</b> <span class="hint">(${a.n} mer.)</span>`;
+  if(a&&prev){
+    const dlt=a.avg-prev.avg, cls=Math.abs(dlt)<0.05?"":(dlt<0?"ok":"over");
+    sub+=` · <span class="${cls}"><b>${dlt>0?"+":""}${dlt.toFixed(1)} kg</b></span> vs. prethodnih 7 dana`;
+  }
+  $("wSub").innerHTML=sub;
+
+  const from=keyShift(cur,-29);
+  const pts=wKeys().filter(k=>k>=from&&k<=cur).map(k=>({k,v:S.weights[k]}));
+  if(pts.length<2){ $("wChart").innerHTML=""; return; }
+  const W=680,H=140,padL=6,padR=42,padT=14,padB=22;
+  const vs=pts.map(p=>p.v), lo=Math.min(...vs)-0.4, hi=Math.max(...vs)+0.4;
+  const dayNo=k=>{const[y,m,d]=k.split("-").map(Number);return Date.UTC(y,m-1,d)/864e5;};
+  const x0=dayNo(pts[0].k), span=Math.max(1,dayNo(pts[pts.length-1].k)-x0);
+  const X=k=>padL+(dayNo(k)-x0)/span*(W-padL-padR);
+  const Y=v=>padT+(hi-v)/(hi-lo)*(H-padT-padB);
+  const line=pts.map((p,i)=>(i?"L":"M")+X(p.k).toFixed(1)+" "+Y(p.v).toFixed(1)).join(" ");
+  const dots=pts.map(p=>`<circle cx="${X(p.k).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="3" fill="var(--f)"><title>${fmtDate(p.k).replace("Danas · ","").replace("Juče · ","")}: ${p.v.toFixed(1)} kg</title></circle>`).join("");
+  let avgLine="";
+  if(a){ const ya=Y(a.avg);
+    avgLine=`<line x1="${padL}" x2="${W-padR}" y1="${ya.toFixed(1)}" y2="${ya.toFixed(1)}" stroke="var(--axis)" stroke-width="1.5" stroke-dasharray="5 4"/>`+
+            `<text x="${W-padR+4}" y="${(ya+3.5).toFixed(1)}" font-size="10.5" fill="var(--muted)">${a.avg.toFixed(1)}</text>`; }
+  $("wChart").innerHTML=
+    `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="Težina u poslednjih 30 dana">
+       ${avgLine}
+       <path d="${line}" fill="none" stroke="var(--f)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+       ${dots}
+       <text x="${padL}" y="${H-6}" font-size="10.5" fill="var(--muted)">${pts[0].k.slice(8)}.${pts[0].k.slice(5,7)}.</text>
+       <text x="${W-padR}" y="${H-6}" text-anchor="end" font-size="10.5" fill="var(--muted)">${pts[pts.length-1].k.slice(8)}.${pts[pts.length-1].k.slice(5,7)}.</text>
+     </svg>`;
 }
 function drawWeek(target){
   const keys=[]; for(let i=6;i>=0;i--) keys.push(keyShift(cur,-i));

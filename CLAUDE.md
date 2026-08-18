@@ -23,6 +23,7 @@ Ako se težina ili navike promene, preračunaj i ažuriraj `profile` u `data.jso
 {
   "profile": { "kcal": 2450, "p": 162, "c": 280, "f": 76, "note": "..." },
   "updated": "YYYY-MM-DD",
+  "weights": { "YYYY-MM-DD": 81.0 },
   "days": {
     "YYYY-MM-DD": [
       { "meal": "Doručak", "name": "Ovsene pahuljice", "note": "80 g", "kcal": 311, "p": 13.6, "c": 52.8, "f": 5.6 }
@@ -32,6 +33,18 @@ Ako se težina ili navike promene, preračunaj i ažuriraj `profile` u `data.jso
 ```
 
 `kcal` celobrojno; `p`/`c`/`f` na jednu decimalu; `note` je količina ("80 g", "2 kom", "procena").
+
+## Merenje težine
+
+Saša se meri svako jutro. Kad javi kilažu ("82.3 jutros", "danas 81"), upiši je u `weights` pod današnjim datumom, na jednu decimalu:
+
+```json
+"weights": { "2026-08-18": 81.0 }
+```
+
+Stranica iz toga računa **7-dnevni prosek** i razliku u odnosu na prethodnih 7 dana (dnevne oscilacije od vode nisu signal — prosek jeste). U odgovoru navedi kilažu, 7-dnevni prosek i trend.
+
+Ako se 7-dnevni prosek pomeri za više od ~1 kg u odnosu na `profile`, preračunaj BMR/TDEE i ažuriraj `profile` i ovaj fajl.
 
 ## Ostala pravila
 
