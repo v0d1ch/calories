@@ -44,6 +44,15 @@
         "p": 13.2,
         "c": 18.8,
         "f": 11.2
+      },
+      {
+        "meal": "Užina",
+        "name": "Nes kafa Classic sa vodom + med",
+        "note": "2 šolje, 2 kašičice meda (~14 g)",
+        "kcal": 48,
+        "p": 0.1,
+        "c": 11.4,
+        "f": 0.0
       }
     ]
   }
