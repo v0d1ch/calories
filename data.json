@@ -17,6 +17,15 @@
         "p": 22.5,
         "c": 150.0,
         "f": 20.0
+      },
+      {
+        "meal": "Ručak",
+        "name": "Wok: junetina sa brokolijem i rezancima (food court)",
+        "note": "porcija ~500 g, procena",
+        "kcal": 720,
+        "p": 51.0,
+        "c": 67.0,
+        "f": 27.5
       }
     ]
   }
