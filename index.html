@@ -61,6 +61,14 @@
   .over{color:var(--crit)}
   .ok{color:var(--good)}
   .hint{font-size:12px;color:var(--muted)}
+  .lock{max-width:340px;margin:48px auto 0}
+  .lock p{color:var(--ink2);font-size:13px;margin:0 0 14px}
+  .lock input[type=password]{width:100%;font:inherit;padding:9px 11px;border-radius:9px;
+    border:1px solid var(--ring);background:var(--surface);color:var(--ink);margin-bottom:10px}
+  .lock input[type=password]:focus{outline:none;border-color:var(--axis)}
+  .lock .row{display:flex;align-items:center;gap:8px;justify-content:space-between}
+  .lock label{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+  .lock .msg{font-size:12.5px;margin-top:10px;min-height:16px}
   svg text{font-family:inherit}
   @media(max-width:520px){.hero{gap:14px}.hero .fig{font-size:36px}}
 </style>
@@ -70,6 +78,7 @@
   <header>
     <h1>Dnevnik kalorija</h1>
     <div class="spacer"></div>
+    <button class="ghost" id="lockBtn" title="Zaključaj i zaboravi lozinku" style="display:none">⎋</button>
     <button class="ghost" id="themeBtn" title="Svetla/tamna tema">◐</button>
   </header>
 
@@ -125,6 +134,19 @@
 
     <p class="hint" id="updated"></p>
   </main>
+
+  <div id="lock" class="card lock" style="display:none">
+    <h2>Zaključano</h2>
+    <p>Podaci su šifrovani. Unesi lozinku da otključaš dnevnik.</p>
+    <form id="lockForm">
+      <input type="password" id="pw" autocomplete="current-password" placeholder="Lozinka" autofocus>
+      <div class="row">
+        <label><input type="checkbox" id="remember"> Zapamti na ovom uređaju</label>
+        <button type="submit" id="unlock">Otključaj</button>
+      </div>
+      <div class="msg" id="lockMsg"></div>
+    </form>
+  </div>
 
   <div id="err" class="card" style="display:none">
     <h2>Nema podataka</h2>
@@ -263,16 +285,57 @@ function drawWeek(target){
 }
 $("prevDay").onclick=()=>{cur=keyShift(cur,-1);render();};
 $("nextDay").onclick=()=>{if(cur<todayKey()){cur=keyShift(cur,1);render();}};
+$("lockBtn").onclick=()=>{ localStorage.removeItem(PW_KEY); location.reload(); };
 $("themeBtn").onclick=()=>{
   const d=document.documentElement.getAttribute("data-theme")==="dark";
   document.documentElement.setAttribute("data-theme",d?"light":"dark");
 };
 if(matchMedia("(prefers-color-scheme: dark)").matches) document.documentElement.setAttribute("data-theme","dark");
 
-fetch("data.json?ts="+Date.now())
-  .then(r=>{if(!r.ok)throw 0;return r.json();})
-  .then(d=>{S=d;$("app").style.display="block";render();})
-  .catch(()=>{$("err").style.display="block";});
+const b64d=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function decrypt(blob,pass){
+  const km=await crypto.subtle.importKey("raw",new TextEncoder().encode(pass),"PBKDF2",false,["deriveKey"]);
+  const key=await crypto.subtle.deriveKey(
+    {name:"PBKDF2",salt:b64d(blob.salt),iterations:blob.iter,hash:"SHA-256"},
+    km,{name:"AES-GCM",length:256},false,["decrypt"]);
+  const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:b64d(blob.iv)},key,b64d(blob.ct));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+function start(d){ S=d; $("lock").style.display="none"; $("app").style.display="block";
+  if(localStorage.getItem(PW_KEY)) $("lockBtn").style.display="inline-block";
+  render(); }
+const PW_KEY="dnevnik_pw";
+
+async function boot(){
+  let blob=null;
+  try{ const r=await fetch("data.enc.json?ts="+Date.now()); if(r.ok) blob=await r.json(); }catch(e){}
+  if(blob&&blob.ct){
+    if(!crypto.subtle){ $("err").style.display="block"; return; }
+    const saved=localStorage.getItem(PW_KEY);
+    if(saved){ try{ return start(await decrypt(blob,saved)); }catch(e){ localStorage.removeItem(PW_KEY); } }
+    $("lock").style.display="block"; $("pw").focus();
+    $("lockForm").onsubmit=async e=>{
+      e.preventDefault();
+      const pass=$("pw").value; if(!pass) return;
+      $("lockMsg").textContent="Dešifrujem…"; $("lockMsg").className="msg hint";
+      try{
+        const d=await decrypt(blob,pass);
+        if($("remember").checked) localStorage.setItem(PW_KEY,pass);
+        start(d);
+      }catch(err){
+        $("lockMsg").textContent="Pogrešna lozinka."; $("lockMsg").className="msg over";
+        $("pw").select();
+      }
+    };
+    return;
+  }
+  try{
+    const r=await fetch("data.json?ts="+Date.now());
+    if(!r.ok) throw 0;
+    start(await r.json());
+  }catch(e){ $("err").style.display="block"; }
+}
+boot();
 </script>
 </body>
 </html>

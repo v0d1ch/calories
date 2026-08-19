@@ -14,7 +14,7 @@ Ako se težina ili navike promene, preračunaj i ažuriraj `profile` u `data.jso
 1. Iz opisa proceni namirnice i količine. Koristi standardne nutritivne vrednosti (na 100 g). Ako je količina nejasna a bitna (npr. meso, testenina, orasi), pitaj kratko; za sitnice pretpostavi razumnu porciju i navedi pretpostavku.
 2. Odredi obrok: "Doručak", "Ručak", "Večera" ili "Užina" (iz konteksta ili doba dana).
 3. Datum: današnji po Beogradu (Europe/Belgrade), format `YYYY-MM-DD`, osim ako korisnik kaže drugačije („juče sam…").
-4. Dodaj stavke u `data.json` pod `days["YYYY-MM-DD"]`, ažuriraj `updated`, komituj i pušuj na `main`.
+4. Dodaj stavke u `data.json` pod `days["YYYY-MM-DD"]`, ažuriraj `updated`, **prešifruj** (vidi „Šifrovanje") i pušuj na `main`.
 5. Odgovori kratko: šta je upisano, dnevni zbir i koliko je ostalo do 2450 kcal + status proteina.
 
 ## Šema data.json
@@ -46,8 +46,29 @@ Stranica iz toga računa **7-dnevni prosek** i razliku u odnosu na prethodnih 7 
 
 Ako se 7-dnevni prosek pomeri za više od ~1 kg u odnosu na `profile`, preračunaj BMR/TDEE i ažuriraj `profile` i ovaj fajl.
 
+## Šifrovanje
+
+Podaci su privatni: u repo-u je samo `data.enc.json` (AES-256-GCM, ključ iz lozinke preko PBKDF2-SHA256, 310k iteracija). Plaintext `data.json` je u `.gitignore` i **nikad se ne komituje**.
+
+Na početku rada, da dobiješ plaintext (traži lozinku od Saše):
+
+```bash
+CAL_PASS='...' node tools/crypt.js decrypt data.enc.json data.json
+```
+
+Posle svake izmene, pre commit-a:
+
+```bash
+CAL_PASS='...' node tools/crypt.js encrypt data.json data.enc.json
+```
+
+Komituje se `data.enc.json`. Ako lozinka nije pri ruci, upiši izmenu i traži lozinku pre pušovanja — ne komituj plaintext.
+
+Stranica sama traži lozinku i dešifruje u browseru (WebCrypto); opciono je pamti u `localStorage`, a dugme ⎋ u zaglavlju je zaboravlja.
+
 ## Ostala pravila
 
 - Brisanje/ispravka: korisnik kaže „obriši burek" ili „to je bilo 150 g" → izmeni odgovarajuću stavku i pušuj.
 - Ne menjaj `index.html` osim na izričit zahtev.
+- Ne komituj `data.json` (plaintext) — samo `data.enc.json`.
 - Commit poruke kratke, na srpskom, npr. `Unos: ručak 18.8.`
