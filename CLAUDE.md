@@ -68,6 +68,7 @@ Stranica sama traži lozinku i dešifruje u browseru (WebCrypto); opciono je pam
 
 ## Ostala pravila
 
+- Pljeskavica uvek ide sa lepinjom (~150 g) — upiši je kao zasebnu stavku.
 - Brisanje/ispravka: korisnik kaže „obriši burek" ili „to je bilo 150 g" → izmeni odgovarajuću stavku i pušuj.
 - Ne menjaj `index.html` osim na izričit zahtev.
 - Ne komituj `data.json` (plaintext) — samo `data.enc.json`.
